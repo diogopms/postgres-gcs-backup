@@ -1,0 +1,18 @@
+image:
+  repository: zoov/postgres-gcs-backup
+  tag: latest
+  pullPolicy: IfNotPresent
+
+resources: {}
+#  limits:
+#    cpu: 100m
+#    memory: 128Mi
+#  requests:
+#    cpu: 100m
+#    memory: 128Mi
+
+concurrencyPolicy: Forbid
+failedJobsHistoryLimit: 1
+restartPolicy: OnFailure
+schedule: "* * * * *"
+successfulJobsHistoryLimit: 3
