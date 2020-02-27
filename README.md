@@ -22,7 +22,7 @@ Environment Variable | Required | Default | Description
 `GCS_BUCKET` | Yes |  | The bucket you want to upload the backup archive to.
 `GCS_KEY_FILE_PATH` | Yes |  | The location where the GCS serviceaccount key file will be mounted.
 `POSTGRES_HOST` | No | `localhost` | The PostgreSQL server host.
-`POSTGRES_PORT` | No | `27017` | The PostgreSQL port.
+`POSTGRES_PORT` | No | `5432` | The PostgreSQL port.
 `POSTGRES_DB` | No |  | The database to backup. By default, a backup of all the databases will be performed.
 `POSTGRES_USER` | No |  | The PostgreSQL user if any.
 `POSTGRES_PASSWORD` | No |  | The PostgreSQL password if any.
