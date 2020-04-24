@@ -1,4 +1,4 @@
-FROM alpine:3.10.3
+FROM alpine:3.11.6
 
 RUN apk add --update \
   bash \
