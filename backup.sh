@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -o pipefail
 set -o errexit
 set -o errtrace
@@ -26,7 +25,7 @@ SLACK_ICON=${SLACK_ICON:-}
 backup() {
   mkdir -p $BACKUP_DIR
   date=$(date "+%Y-%m-%dT%H:%M:%SZ")
-  archive_name="$JOB_NAME-backup-$date.sql.gz"
+  archive_name="$date-$JOB_NAME-backup.sql.gz"
   cmd_auth_part=""
   if [[ ! -z $POSTGRES_USER ]] && [[ ! -z $POSTGRES_PASSWORD ]]
   then
