@@ -1,5 +1,5 @@
 image:
-  repository: zoov/postgres-gcs-backup
+  repository: diogopms/postgres-gcs-backup
   tag: latest
   pullPolicy: IfNotPresent
 
