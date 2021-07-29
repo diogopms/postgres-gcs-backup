@@ -32,6 +32,7 @@ Environment Variable | Required | Default | Description
 `SLACK_CHANNEL` | No |  | The channel to send Slack messages to.
 `SLACK_USERNAME` | No |  | The user to send Slack messages as.
 `SLACK_ICON` | No |  | The Slack icon to associate to the user/message.
+`DATE_FORMAT`| No | %Y-%m-%dT%H:%M:%SZ | The format of the date used in the filename
 
 You can set all of these variables within your `values.yaml` file under the `env` dict key.
 

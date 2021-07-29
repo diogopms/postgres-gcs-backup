@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o pipefail
 set -o errexit
-set -o errtrace
+# set -o errtrace
 set -o nounset
 # set -o xtrace
 
@@ -21,10 +21,11 @@ SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
 SLACK_CHANNEL=${SLACK_CHANNEL:-}
 SLACK_USERNAME=${SLACK_USERNAME:-}
 SLACK_ICON=${SLACK_ICON:-}
+DATE_FORMAT=${DATE_FORMAT:-"%Y-%m-%dT%H:%M:%SZ"}
 
 backup() {
   mkdir -p $BACKUP_DIR
-  date=$(date "+%Y-%m-%dT%H:%M:%SZ")
+  date=$(date "+$DATE_FORMAT")
   archive_name="$date-$JOB_NAME-backup.sql.gz"
   cmd_auth_part=""
   if [[ ! -z $POSTGRES_USER ]] && [[ ! -z $POSTGRES_PASSWORD ]]
