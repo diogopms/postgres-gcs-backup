@@ -28,7 +28,6 @@ DATE_FORMAT=${DATE_FORMAT:-"%Y-%m-%dT%H:%M:%SZ"}
 backup() {
   mkdir -p $BACKUP_DIR
   date=$(date "+$DATE_FORMAT")
-  archive_name="$date-$JOB_NAME-backup.sql.gz"
   cmd_auth_part=""
   if [[ ! -z $POSTGRES_USER ]] && [[ ! -z $POSTGRES_PASSWORD ]]
   then
@@ -42,9 +41,18 @@ backup() {
   fi
 
   export PGPASSWORD=$POSTGRES_PASSWORD
-  cmd="pg_dump --host=\"$POSTGRES_HOST\" --port=\"$POSTGRES_PORT\" $cmd_auth_part $cmd_db_part | gzip > $BACKUP_DIR/$archive_name"
-  echo "starting to backup PostGRES host=$POSTGRES_HOST port=$POSTGRES_PORT"
 
+  if [[ ! -z $POSTGRES_DB ]]; then
+    archive_name="$date-$POSTGRES_DB-backup.sql.gz"
+    cmd="pg_dump --host=\"$POSTGRES_HOST\" --port=\"$POSTGRES_PORT\" $cmd_auth_part $cmd_db_part | gzip > $BACKUP_DIR/$archive_name"
+  else
+    archive_name="$date-alldatabases-backup.sql.gz"
+    echo "Dumping all databases"
+    cmd="pg_dumpall --host=\"$POSTGRES_HOST\" --port=\"$POSTGRES_PORT\" $cmd_auth_part $cmd_db_part | gzip > $BACKUP_DIR/$archive_name"
+  fi
+
+  echo "starting to backup PostGRES host=$POSTGRES_HOST port=$POSTGRES_PORT"
+  echo "$cmd"
   eval "$cmd"
 }
 
