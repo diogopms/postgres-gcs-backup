@@ -34,6 +34,7 @@ Environment Variable | Required | Default | Description
 `SLACK_ICON` | No |  | The Slack icon to associate to the user/message.
 `DATE_FORMAT`| No | %Y-%m-%dT%H:%M:%SZ | The format of the date/time used in the filename
 `GCS_BUCKET_PATH_PREFIX`| No | | Individual prefix for the path to the file is stored in the bucket
+`GCS_BUCKET_PATH_DATE_PREFIX`|No | | `true` if you want to add the date in the form y/m/d to the bucket path (after the GCS_BUCKET_PATH_PREFIX)
 
 You can set all of these variables within your `values.yaml` file under the `env` dict key.
 
