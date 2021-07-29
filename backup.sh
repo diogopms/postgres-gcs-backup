@@ -9,6 +9,7 @@ JOB_NAME=${JOB_NAME:-default-job}
 BACKUP_DIR=${BACKUP_DIR:-/tmp}
 BOTO_CONFIG_PATH=${BOTO_CONFIG_PATH:-/root/.boto}
 GCS_BUCKET=${GCS_BUCKET:-}
+GCS_BUCKET_PATH_PREFIX=${GCS_BUCKET_PATH_PREFIX:-}
 GCS_KEY_FILE_PATH=${GCS_KEY_FILE_PATH:-}
 POSTGRES_HOST=${POSTGRES_HOST:-localhost}
 POSTGRES_PORT=${POSTGRES_PORT:-5432}
@@ -49,6 +50,10 @@ backup() {
 upload_to_gcs() {
   if [[ ! "$GCS_BUCKET" =~ gs://* ]]; then
     GCS_BUCKET="gs://${GCS_BUCKET}"
+  fi
+
+  if [[ ! -z `$GCS_BUCKET_PATH_PREFIX` ]]; then
+      GCS_BUCKET=$GCS_BUCKET$GCS_BUCKET_PATH_PREFIX
   fi
 
   if [[ $GCS_KEY_FILE_PATH != "" ]]
