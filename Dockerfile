@@ -2,7 +2,7 @@ FROM alpine:3.18.3
 
 RUN apk add --update \
   bash \
-  postgresql14 \
+  postgresql15 \
   curl \
   python3 \
   py-pip \
