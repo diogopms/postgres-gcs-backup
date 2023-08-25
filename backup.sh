@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o pipefail
 set -o errexit
-set -o errtrace
+# set -o errtrace
 set -o nounset
 # set -o xtrace
 
@@ -9,6 +9,8 @@ JOB_NAME=${JOB_NAME:-default-job}
 BACKUP_DIR=${BACKUP_DIR:-/tmp}
 BOTO_CONFIG_PATH=${BOTO_CONFIG_PATH:-/root/.boto}
 GCS_BUCKET=${GCS_BUCKET:-}
+GCS_BUCKET_PATH_PREFIX=${GCS_BUCKET_PATH_PREFIX:-}
+GCS_BUCKET_PATH_DATE_PREFIX=${GCS_BUCKET_PATH_DATE_PREFIX:-}
 GCS_KEY_FILE_PATH=${GCS_KEY_FILE_PATH:-}
 POSTGRES_HOST=${POSTGRES_HOST:-localhost}
 POSTGRES_PORT=${POSTGRES_PORT:-5432}
@@ -21,11 +23,11 @@ SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
 SLACK_CHANNEL=${SLACK_CHANNEL:-}
 SLACK_USERNAME=${SLACK_USERNAME:-}
 SLACK_ICON=${SLACK_ICON:-}
+DATE_FORMAT=${DATE_FORMAT:-"%Y-%m-%dT%H:%M:%SZ"}
 
 backup() {
   mkdir -p $BACKUP_DIR
-  date=$(date "+%Y-%m-%dT%H:%M:%SZ")
-  archive_name="$date-$JOB_NAME-backup.sql.gz"
+  date=$(date "+$DATE_FORMAT")
   cmd_auth_part=""
   if [[ ! -z $POSTGRES_USER ]] && [[ ! -z $POSTGRES_PASSWORD ]]
   then
@@ -39,15 +41,32 @@ backup() {
   fi
 
   export PGPASSWORD=$POSTGRES_PASSWORD
-  cmd="pg_dump --host=\"$POSTGRES_HOST\" --port=\"$POSTGRES_PORT\" $cmd_auth_part $cmd_db_part | gzip > $BACKUP_DIR/$archive_name"
-  echo "starting to backup PostGRES host=$POSTGRES_HOST port=$POSTGRES_PORT"
 
+  if [[ ! -z $POSTGRES_DB ]]; then
+    archive_name="$date-$POSTGRES_DB-backup.sql.gz"
+    cmd="pg_dump --host=\"$POSTGRES_HOST\" --port=\"$POSTGRES_PORT\" $cmd_auth_part $cmd_db_part | gzip > $BACKUP_DIR/$archive_name"
+  else
+    archive_name="$date-alldatabases-backup.sql.gz"
+    echo "Dumping all databases"
+    cmd="pg_dumpall --host=\"$POSTGRES_HOST\" --port=\"$POSTGRES_PORT\" $cmd_auth_part $cmd_db_part | gzip > $BACKUP_DIR/$archive_name"
+  fi
+
+  echo "starting to backup PostGRES host=$POSTGRES_HOST port=$POSTGRES_PORT"
+  echo "$cmd"
   eval "$cmd"
 }
 
 upload_to_gcs() {
   if [[ ! "$GCS_BUCKET" =~ gs://* ]]; then
     GCS_BUCKET="gs://${GCS_BUCKET}"
+  fi
+
+  if [[ ! -z "$GCS_BUCKET_PATH_PREFIX" ]]; then
+      GCS_BUCKET=$GCS_BUCKET$GCS_BUCKET_PATH_PREFIX
+  fi
+
+  if [[ "$GCS_BUCKET_PATH_DATE_PREFIX" == "true" ]]; then
+      GCS_BUCKET=$GCS_BUCKET$(date "+%Y")/$(date "+%m")/$(date "+%d")/
   fi
 
   if [[ $GCS_KEY_FILE_PATH != "" ]]
