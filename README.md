@@ -1,6 +1,6 @@
 # postgres-gcs-backup
 
-This project aims to provide a simple way to perform a PostgreSQL server/db backup using `pg_dump` and to upload it to Google Cloud Storage. It was greatly inspired from [`takemetour/docker-postgres-gcs-backup`](https://github.com/takemetour/docker-postgres-gcs-backup).
+This project aims to provide a simple way to perform a PostgreSQL server/db backup using `pg_dump` and to upload it to Google Cloud Storage. This is a fork from [`diogopms/postgres-gcs-backup`](https://github.com/diogopms/docker-postgres-gcs-backup) retrofitted to work similar to Galoy's mongo backup.
 
 We provide a kubernetes support thanks to the helm chart located in the `chart` folder of this repository.
 
@@ -8,7 +8,7 @@ We provide a kubernetes support thanks to the helm chart located in the `chart` 
 
 You can pull the public image from Docker Hub:
 
-    docker pull diogopms/postgres-gcs-backup:latest
+    docker pull docker.io/brh28/postgres-gcs-backup:latest
 
 ### Configuration
 
@@ -20,7 +20,7 @@ Environment Variable | Required | Default | Description
 `BACKUP_DIR` | No | `/tmp` | The path where the `pg_dump` result will be temporarily stored.
 `BOTO_CONFIG_PATH` | No | `/root/.boto` | The path where `gsutil` will search for the boto configuration file.
 `GCS_BUCKET` | Yes |  | The bucket you want to upload the backup archive to.
-`GCS_KEY_FILE_PATH` | Yes |  | The location where the GCS serviceaccount key file will be mounted.
+`GCS_KEY_FILE_PATH` | Yes |  | The location where the GCS serviceaccount key file will be mounted. Set to /secrets/gcp/gcs-creds.json
 `POSTGRES_HOST` | No | `localhost` | The PostgreSQL server host.
 `POSTGRES_PORT` | No | `5432` | The PostgreSQL port.
 `POSTGRES_DB` | No |  | The database to backup. By default, a backup of all the databases will be performed.
@@ -34,6 +34,12 @@ Environment Variable | Required | Default | Description
 `SLACK_ICON` | No |  | The Slack icon to associate to the user/message.
 
 You can set all of these variables within your `values.yaml` file under the `env` dict key.
+
+```
+env:
+    - name: GCS_BUCKET
+    value: flash-backups
+```
 
 ### Usage
 

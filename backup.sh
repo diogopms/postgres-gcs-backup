@@ -1,15 +1,9 @@
 #!/bin/bash
-set -o pipefail
-set -o errexit
-set -o errtrace
-set -o nounset
-# set -o xtrace
 
 JOB_NAME=${JOB_NAME:-default-job}
 BACKUP_DIR=${BACKUP_DIR:-/tmp}
-BOTO_CONFIG_PATH=${BOTO_CONFIG_PATH:-/root/.boto}
 GCS_BUCKET=${GCS_BUCKET:-}
-GCS_KEY_FILE_PATH=${GCS_KEY_FILE_PATH:-}
+GCS_KEY_FILE_PATH=${GCS_KEY_FILE_PATH:-/secrets/gcp/gcs-creds.json}
 POSTGRES_HOST=${POSTGRES_HOST:-localhost}
 POSTGRES_PORT=${POSTGRES_PORT:-5432}
 POSTGRES_DB=${POSTGRES_DB:-}
@@ -50,22 +44,11 @@ upload_to_gcs() {
     GCS_BUCKET="gs://${GCS_BUCKET}"
   fi
 
-  if [[ $GCS_KEY_FILE_PATH != "" ]]
-  then
-cat <<EOF > $BOTO_CONFIG_PATH
-[Credentials]
-gs_service_key_file = $GCS_KEY_FILE_PATH
-[Boto]
-https_validate_certificates = True
-[GoogleCompute]
-[GSUtil]
-content_language = en
-default_api_version = 2
-[OAuth2]
-EOF
-  fi
-  echo "uploading backup archive to GCS bucket=$GCS_BUCKET"
-  gsutil cp $BACKUP_DIR/$archive_name $GCS_BUCKET
+  echo "Activating service account"
+  gcloud auth activate-service-account --key-file=$GCS_KEY_FILE_PATH 
+  echo "Uploading backup $archive_name to gcs"
+  gsutil cp $BACKUP_DIR/$archive_name $GCS_BUCKET/kratos/$archive_name 2>&1
+  echo "Uploaded backup successfully"
 }
 
 send_slack_message() {

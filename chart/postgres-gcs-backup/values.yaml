@@ -1,7 +1,12 @@
 image:
-  repository: diogopms/postgres-gcs-backup
+  repository: docker.io/brh28/postgres-gcs-backup
   tag: latest
   pullPolicy: IfNotPresent
+
+gcsCredentials:
+  secret:
+    name:
+    key:
 
 resources: {}
 #  limits:
@@ -16,3 +21,7 @@ failedJobsHistoryLimit: 1
 restartPolicy: OnFailure
 schedule: "* * * * *"
 successfulJobsHistoryLimit: 3
+
+# env:
+#   - name: GCS_KEY_FILE_PATH
+#     value: "/secrets/gcp/gcs-creds.json" 

@@ -37,4 +37,7 @@ spec:
           volumes:
             - name: gcp-credentials
               secret:
-                secretName: {{ .Values.secretName }}
+                secretName: {{ .Values.gcsCredentials.secret.name }}
+                items:
+                - key: {{ .Values.gcsCredentials.secret.key }} 
+                  path: "gcs-creds.json"
