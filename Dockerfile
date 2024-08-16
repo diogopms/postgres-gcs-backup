@@ -1,22 +1,10 @@
-FROM alpine:3.20.2
+FROM python:alpine3.20
 
 RUN apk add --update \
   bash \
-  postgresql15 \
+  postgresql16 \
   curl \
-  python3 \
-  py-pip \
-  py-cffi \
-  && pip install --upgrade pip \
-  && apk add --virtual build-deps \
-  gcc \
-  libffi-dev \
-  python3-dev \
-  linux-headers \
-  musl-dev \
-  openssl-dev \
   && pip install gsutil \
-  && apk del build-deps \
   && rm -rf /var/cache/apk/*
 
 ADD . /postgres-gcs-backup
