@@ -1,6 +1,7 @@
 # postgres-gcs-backup
 
-This project aims to provide a simple way to perform a PostgreSQL server/db backup using `pg_dump` and to upload it to Google Cloud Storage. It was greatly inspired from [`takemetour/docker-postgres-gcs-backup`](https://github.com/takemetour/docker-postgres-gcs-backup).
+This project aims to provide a simple way to perform a PostgreSQL server/db backup using `pg_dump` and to upload it to Google Cloud Storage.
+It also provides the ability to send Slack alerts in case of failure.
 
 We provide a kubernetes support thanks to the helm chart located in the `chart` folder of this repository.
 
