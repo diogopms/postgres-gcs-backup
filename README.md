@@ -11,6 +11,10 @@ You can pull the public image from Docker Hub:
 
     docker pull diogopms/postgres-gcs-backup:latest
 
+Or pull the public image from Github Registry:
+
+     docker pull ghcr.io/diogopms/postgres-gcs-backup:latest
+
 ### Configuration
 
 The following table lists the configurable parameters you can set up.
