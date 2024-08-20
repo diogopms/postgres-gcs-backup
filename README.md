@@ -1,5 +1,14 @@
 # postgres-gcs-backup
 
+![GitHub last commit (branch)](https://img.shields.io/github/last-commit/diogopms/postgres-gcs-backup/main.svg)
+[![GitHub issues](https://img.shields.io/github/issues/diogopms/postgres-gcs-backup)](https://github.com/diogopms/postgres-gcs-backup/issues)
+[![GitHub license](https://img.shields.io/github/license/diogopms/postgres-gcs-backup)](https://github.com/diogopms/postgres-gcs-backup/blob/master/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/diogopms/postgres-gcs-backup)](https://github.com/diogopms/postgres-gcs-backup/stargazers)
+
+
+[![Docker Pulls](https://img.shields.io/docker/pulls/diogopms/postgres-gcs-backup.svg)](https://hub.docker.com/r/diogopms/postgres-gcs-backup/)
+[![Hacktoberfest](https://img.shields.io/github/hacktoberfest/2022/diogopms/postgres-gcs-backup)](https://github.com/diogopms/postgres-gcs-backup/issues)
+
 This project aims to provide a simple way to perform a PostgreSQL server/db backup using `pg_dump` and to upload it to Google Cloud Storage.
 It also provides the ability to send Slack alerts in case of failure.
 
