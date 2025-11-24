@@ -2,7 +2,7 @@ FROM python:alpine3.20
 
 RUN apk add --update \
   bash \
-  postgresql17 \
+  postgresql-client \
   curl \
   && pip install gsutil \
   && rm -rf /var/cache/apk/*
