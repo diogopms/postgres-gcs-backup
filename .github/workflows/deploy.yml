@@ -43,6 +43,7 @@ jobs:
           tags: |
             type=ref,event=branch,pattern=main
             type=ref,event=tag
+            type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
