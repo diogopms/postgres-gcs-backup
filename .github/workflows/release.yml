@@ -1,0 +1,125 @@
+name: Release
+
+# Releases are NOT cut on merge to main — pushes only run CI.
+# Instead this job runs on a schedule (monthly): it determines the next
+# version from the Conventional Commits since the last tag. Only if there is a
+# release-worthy change (a feat/fix/breaking-change commit) does it create the
+# git tag, build and push the production Docker image to the GitHub Container
+# Registry (ghcr.io), and cut a GitHub Release. If nothing releasable has landed
+# since the last tag, `new_version` is empty and every release step is skipped —
+# a no-op run.
+#
+# To FORCE a release (e.g. after a docs-only or chore change), trigger it
+# manually and pick a bump level:
+#   * GitHub UI: Actions > Release > "Run workflow" > set "bump" to patch/minor/major.
+#   * CLI:       gh workflow run release.yml -f bump=patch
+# With `bump=auto` (the default) a manual run behaves exactly like the schedule:
+# it releases only if a feat/fix/breaking-change commit has landed.
+#
+# Version bump rules (mathieudutour/github-tag-action, Conventional Commits):
+#   - commit/PR title contains "BREAKING CHANGE" or "feat!:" -> major (x.0.0)
+#   - commit/PR title starts with "feat:"                    -> minor (0.x.0)
+#   - commit/PR title starts with "fix:"                     -> patch (0.0.x)
+#   - anything else                                          -> no release (skipped)
+
+on:
+  schedule:
+    - cron: "0 5 1 * *" # monthly (first of the month, 05:00 UTC)
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Force a release with this bump when no releasable commits exist (auto = behave like the schedule)"
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+          - major
+        default: auto
+
+# Never run two releases at once.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write # create/push the git tag + release
+  packages: write # push the image to ghcr.io
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          # Full history is required so the tagging action can read previous tags
+          # and compute the next semantic version.
+          fetch-depth: 0
+
+      - name: Determine next version
+        id: tag
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag_prefix: v
+          # `default_bump` is the bump applied only when NO Conventional Commit
+          # since the last tag dictates one. Normally `false`, so non-releasable
+          # commits (docs, test, ci, chore, …) leave `new_version` empty and the
+          # release is skipped. A manual run can override it: passing
+          # bump=patch|minor|major forces that bump even on a docs-only change.
+          # A feat/fix/breaking-change commit always wins over this fallback.
+          default_bump: ${{ (github.event_name == 'workflow_dispatch' && inputs.bump != 'auto') && inputs.bump || false }}
+          release_branches: main
+
+      - name: Compute image metadata
+        if: steps.tag.outputs.new_version
+        id: meta
+        env:
+          VERSION: ${{ steps.tag.outputs.new_version }}
+        run: |
+          set -euo pipefail
+          # ghcr.io image names must be lowercase.
+          IMAGE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          MAJOR="${VERSION%%.*}"
+          MINOR="${VERSION#*.}"; MINOR="${MINOR%%.*}"
+          {
+            echo "image=$IMAGE"
+            echo "tags=$IMAGE:$VERSION,$IMAGE:$MAJOR.$MINOR,$IMAGE:$MAJOR,$IMAGE:latest"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        if: steps.tag.outputs.new_version
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: steps.tag.outputs.new_version
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        if: steps.tag.outputs.new_version
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.tag.outputs.new_version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create GitHub release
+        if: steps.tag.outputs.new_version
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.new_tag }}
+          name: ${{ steps.tag.outputs.new_tag }}
+          body: ${{ steps.tag.outputs.changelog }}
