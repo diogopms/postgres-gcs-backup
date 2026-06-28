@@ -40,6 +40,8 @@ Environment Variable | Required | Default | Description
 `POSTGRES_DB` | No |  | The database to backup. By default, a backup of all the databases will be performed.
 `POSTGRES_USER` | No |  | The PostgreSQL user if any.
 `POSTGRES_PASSWORD` | No |  | The PostgreSQL password if any.
+`PGDUMP_EXTRA_OPTS` | No |  | Extra options passed verbatim to `pg_dump`, e.g. `--schema=public --no-owner`.
+`BACKUP_RETENTION_DAYS` | No |  | When set to a positive integer, backups for this `JOB_NAME` older than this many days are pruned from the bucket after a successful upload.
 `SLACK_AUTHOR_NAME` | No | `postgres-gcs-backup` | `true` slack author name.
 `SLACK_ALERTS` | No |  | `true` if you want to send Slack alerts in case of failure.
 `SLACK_WEBHOOK_URL` | No |  | The Incoming WebHook URL to use to send the alerts.
@@ -67,6 +69,13 @@ Please note that you can set any environment variable described in the previous 
     SLACK_CHANNEL=<slack_channel> \
     SLACK_USERNAME=<slack_username> \
     SLACK_ICON=<slack_icon> \
+    GCS_BUCKET=<gs://bucket_name> \
+    ./backup.sh
+
+To pass extra options to `pg_dump` and prune backups older than 7 days after a successful upload:
+
+    PGDUMP_EXTRA_OPTS="--schema=public --no-owner" \
+    BACKUP_RETENTION_DAYS=7 \
     GCS_BUCKET=<gs://bucket_name> \
     ./backup.sh
 
