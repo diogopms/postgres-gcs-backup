@@ -3,9 +3,11 @@ name: Release
 # Releases are NOT cut on merge to main — pushes only run CI.
 # Instead this job runs on a schedule (monthly): it determines the next
 # version from the Conventional Commits since the last tag. Only if there is a
-# release-worthy change (a feat/fix/breaking-change commit) does it create the
-# git tag, build and push the production Docker image to the GitHub Container
-# Registry (ghcr.io), and cut a GitHub Release. If nothing releasable has landed
+# release-worthy change (a feat/fix/breaking-change commit) does it build and
+# push the production Docker image to the GitHub Container Registry (ghcr.io),
+# then create the git tag and cut a GitHub Release. The version is computed in
+# dry-run mode and the tag is created only after the image is published, so a
+# failed build never leaves a dangling tag behind. If nothing releasable has landed
 # since the last tag, `new_version` is empty and every release step is skipped —
 # a no-op run.
 #
@@ -72,6 +74,10 @@ jobs:
           # A feat/fix/breaking-change commit always wins over this fallback.
           default_bump: ${{ (github.event_name == 'workflow_dispatch' && inputs.bump != 'auto') && inputs.bump || false }}
           release_branches: main
+          # Compute the next version WITHOUT creating the tag here. The tag is
+          # created later by the release step, only after the image is pushed,
+          # so a failed build never leaves an orphan tag behind.
+          dry_run: true
 
       - name: Compute image metadata
         if: steps.tag.outputs.new_version
@@ -121,5 +127,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.new_tag }}
+          # Create the tag on the checked-out branch tip now that the image is
+          # published. This is the point at which the version tag comes into
+          # existence (the version step above ran in dry-run mode).
+          target_commitish: main
           name: ${{ steps.tag.outputs.new_tag }}
           body: ${{ steps.tag.outputs.changelog }}
