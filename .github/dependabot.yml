@@ -1,15 +1,28 @@
 version: 2
 updates:
-- package-ecosystem: docker
-  directory: "/"
-  schedule:
-    interval: daily
-    time: "10:00"
-  open-pull-requests-limit: 99
-  reviewers:
-  - diogopms
-  ignore:
-  - dependency-name: alpine
-    versions:
-    - 3.13.3
-    - 3.13.4
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: monthly
+    # Security-only: disable routine version bumps; only open PRs for CVEs.
+    open-pull-requests-limit: 0
+    groups:
+      security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+    assignees:
+      - diogopms
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    # Security-only: disable routine version bumps; only open PRs for CVEs.
+    open-pull-requests-limit: 0
+    groups:
+      security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+    assignees:
+      - diogopms
