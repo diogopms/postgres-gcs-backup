@@ -18,7 +18,7 @@ name: Release
 # With `bump=auto` (the default) a manual run behaves exactly like the schedule:
 # it releases only if a feat/fix/breaking-change commit has landed.
 #
-# Version bump rules (mathieudutour/github-tag-action, Conventional Commits):
+# Version bump rules (TriPSs/conventional-changelog-action, Conventional Commits):
 #   - commit/PR title contains "BREAKING CHANGE" or "feat!:" -> major (x.0.0)
 #   - commit/PR title starts with "feat:"                    -> minor (0.x.0)
 #   - commit/PR title starts with "fix:"                     -> patch (0.0.x)
@@ -60,24 +60,93 @@ jobs:
           # and compute the next semantic version.
           fetch-depth: 0
 
+      # Compute the next version from the Conventional Commits since the last
+      # tag. `skip-commit`/`skip-version-file` make the action read the current
+      # version from git tags (not from a version file), and with the
+      # `conventionalcommits` preset the commit types hidden from the changelog
+      # (docs, test, ci, chore, ...) yield an empty changelog, which
+      # `skip-on-empty` turns into a skipped run - the same "nothing releasable
+      # -> no release" behavior as before. Compute-only: no commit, no tag, no
+      # push. The tag is created later by the release step, only after the
+      # image is pushed, so a failed build never leaves an orphan tag behind.
       - name: Determine next version
-        id: tag
-        uses: mathieudutour/github-tag-action@v6.2
+        if: github.event_name != 'workflow_dispatch' || inputs.bump == 'auto'
+        id: bump
+        uses: TriPSs/conventional-changelog-action@v6
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          tag_prefix: v
-          # `default_bump` is the bump applied only when NO Conventional Commit
-          # since the last tag dictates one. Normally `false`, so non-releasable
-          # commits (docs, test, ci, chore, …) leave `new_version` empty and the
-          # release is skipped. A manual run can override it: passing
-          # bump=patch|minor|major forces that bump even on a docs-only change.
-          # A feat/fix/breaking-change commit always wins over this fallback.
-          default_bump: ${{ (github.event_name == 'workflow_dispatch' && inputs.bump != 'auto') && inputs.bump || false }}
-          release_branches: main
-          # Compute the next version WITHOUT creating the tag here. The tag is
-          # created later by the release step, only after the image is pushed,
-          # so a failed build never leaves an orphan tag behind.
-          dry_run: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          tag-prefix: v
+          preset: conventionalcommits
+          output-file: false
+          skip-version-file: true
+          skip-commit: true
+          skip-tag: true
+          git-push: false
+          skip-git-pull: true
+          skip-on-empty: true
+
+      # Manual override: a workflow_dispatch run with bump=patch|minor|major
+      # forces that bump from the latest tag even when no releasable commit
+      # exists (e.g. after a docs-only change).
+      - name: Determine next version (manual bump)
+        if: github.event_name == 'workflow_dispatch' && inputs.bump != 'auto'
+        id: manual
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          set -euo pipefail
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          VERSION=${LAST_TAG#v}
+          VERSION=${VERSION:-0.0.0}
+          IFS=. read -r MAJOR MINOR PATCH <<< "$VERSION"
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          {
+            echo "version=$NEW_VERSION"
+            echo "tag=v$NEW_VERSION"
+            echo "changelog<<CHANGELOG_EOF"
+            git log ${LAST_TAG:+"$LAST_TAG..HEAD"} --pretty='* %s (%h)'
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # Merge both paths into the `tag` outputs every later step reads.
+      # `new_version` stays empty when there is nothing to release, keeping the
+      # `if: steps.tag.outputs.new_version` guards working unchanged.
+      - name: Resolve next version
+        id: tag
+        env:
+          MANUAL_VERSION: ${{ steps.manual.outputs.version }}
+          MANUAL_TAG: ${{ steps.manual.outputs.tag }}
+          MANUAL_CHANGELOG: ${{ steps.manual.outputs.changelog }}
+          AUTO_SKIPPED: ${{ steps.bump.outputs.skipped }}
+          AUTO_VERSION: ${{ steps.bump.outputs.version }}
+          AUTO_TAG: ${{ steps.bump.outputs.tag }}
+          AUTO_CHANGELOG: ${{ steps.bump.outputs.changelog }}
+        run: |
+          set -euo pipefail
+          NEW_VERSION=""
+          NEW_TAG=""
+          CHANGELOG=""
+          if [ -n "$MANUAL_VERSION" ]; then
+            NEW_VERSION=$MANUAL_VERSION
+            NEW_TAG=$MANUAL_TAG
+            CHANGELOG=$MANUAL_CHANGELOG
+          elif [ "$AUTO_SKIPPED" = "false" ] && [ -n "$AUTO_VERSION" ]; then
+            NEW_VERSION=$AUTO_VERSION
+            NEW_TAG=$AUTO_TAG
+            CHANGELOG=$AUTO_CHANGELOG
+          fi
+          {
+            echo "new_version=$NEW_VERSION"
+            echo "new_tag=$NEW_TAG"
+            echo "changelog<<CHANGELOG_EOF"
+            printf '%s\n' "$CHANGELOG"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Compute image metadata
         if: steps.tag.outputs.new_version
@@ -129,7 +198,7 @@ jobs:
           tag_name: ${{ steps.tag.outputs.new_tag }}
           # Create the tag on the checked-out branch tip now that the image is
           # published. This is the point at which the version tag comes into
-          # existence (the version step above ran in dry-run mode).
+          # existence (the version step above ran in compute-only mode).
           target_commitish: main
           name: ${{ steps.tag.outputs.new_tag }}
           body: ${{ steps.tag.outputs.changelog }}
